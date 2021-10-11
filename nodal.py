@@ -456,7 +456,7 @@ class MainWindow(QMainWindow):
         textedit = self.editor
         t = textedit.textCursor()
  
-        DIRA = '/Volumes/Untitled/nodal/sourcea/'
+        DIRA = os.getcwd() + '/sourcea/'
         no_of_files = len([name for name in os.listdir(DIRA) if os.path.isfile(os.path.join(DIRA, name))])
 
         print("YUP")
@@ -473,7 +473,7 @@ class MainWindow(QMainWindow):
             t.insertText(s)
             t.insertText("\n")
 
-        DIRB = '/Volumes/Untitled/nodal/sourceb/'
+        DIRB = os.getcwd() + '/sourceb/'
         no_of_files = len([name for name in os.listdir(DIRB) if os.path.isfile(os.path.join(DIRB, name))])
 
         print("YUP")
