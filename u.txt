@@ -1,3 +1,8 @@
-is and a
-had The the the no as his
-on than the of is this a
+{"0": ["when he went", "when he", "when", "he", "went", "he went"],
+"1": ["it is the same place", "it is", "the same place", "it", "is", "the", "same", "place", "same place"],
+"2": ["had he taken leave", "had", "he", "taken", "leave", "had he", "taken leave"],
+"3": ["the same place", "the same", "same place", "the", "same", "place"],
+"4": ["turn around", "turn", "around"],
+"5": ["had he taken leave", "had he", "taken leave", "had", "he", "taken", "leave"],
+"6": ["long were the years", "long were", "the years", "long", "were", "the", "years"],
+"7": ["dead eyes of metallic networks", "dead eyes", "dead eyes of", "metallic networks", "dead", "eyes", "of", "metallic", "networks"]}
