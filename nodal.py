@@ -12,6 +12,10 @@ FONT_SIZES = [7, 8, 9, 10, 11, 12, 13, 14, 18, 24, 36, 48, 64, 72, 96, 144, 288]
 IMAGE_EXTENSIONS = ['.jpg','.png','.bmp']
 HTML_EXTENSIONS = ['.htm', '.html']
 
+group_counter = 0
+groups = []
+start_text = True
+
 def hexuuid():
     return uuid.uuid4().hex
 
@@ -19,50 +23,47 @@ def splitext(p):
     return os.path.splitext(p)[1].lower()
 
 class TextEdit(QTextEdit):
+    # render new screen after changes to text
     def render_new_screen(self, a):
         self.clear()
                   
         textPos = 0
 
         for i in range(len(a)):
-
-#            cursor = self.textCursor()
-#            cursor.setPosition(textPos)
-#            self.setTextCursor(cursor)
             cursor = self.textCursor()
             cursor.insertFragment(a[i])    
             
             if(i != len(a) - 1):
                 self.setFontUnderline(False)
                 self.insertPlainText(" ")
-#                cursor = self.textCursor()
-#                # set cursor to the beginning of the text
-#                textPos = textPos + 1
-#                cursor.setPosition(textPos)
-#                self.setTextCursor(cursor)
         
+# return all text(grouped text and non grouped text) as an array of blocks
     def getTextAsArray(self):
+         global groups
          # position in text
          i = 0
          blocks = []
+         groups = []
          newBlock = False
+         group = False
 
          startPosition = 0
          endPosition = 0
-         start = False 
+         start = False
 
          # get the current cursor
          cursor = self.textCursor()
          # set cursor to the beginning of the text 
          cursor.setPosition(0)
          self.setTextCursor(cursor)
-         cursor = self.textCursor()
+         cursor = self.textCursor() 
     
          while(self.document().characterAt(i) != '\0'):
              # get the current cursor
              cursor = self.textCursor()
              # set cursor to the beginning of the text
-             cursor.setPosition(i + 1)
+             if(self.document().characterAt(i + 1) != '\0'):
+                cursor.setPosition(i + 1)
              self.setTextCursor(cursor)
              cursor = self.textCursor()
 
@@ -71,29 +72,27 @@ class TextEdit(QTextEdit):
              else:
                  newBlock = False
 
-             if(self.document().characterAt(i) != ' ' and newBlock is False):
-                 # set the start position
-                 if(start is False):
-                     startPosition = i
-                     start = True
-                
-             elif(self.document().characterAt(i) != ' ' and newBlock is True):
-                 if(start is False):
+             if(self.document().characterAt(i) != ' ' and self.document().characterAt(i) != '\n' and ord(self.document().characterAt(i)) != 8233 and ord(self.document().characterAt(i)) != 8232):
+                # take into account the weird thing when you add a space to the end of the text with ord
+                if(start is False):
                     startPosition = i
-                    start = True 
-         
+                    start = True
              elif(self.document().characterAt(i) == ' ' and newBlock is True):
-                 print("IOOOP")
+                 group = True
+             elif((self.document().characterAt(i) == ' ' or self.document().characterAt(i) == '\n' or ord(self.document().characterAt(i)) == 8233 or ord(self.document().characterAt(i)) == 8232) and newBlock is False): 
+                 if(start == True):
+                    endPosition = i
 
-             elif(self.document().characterAt(i) == ' ' and newBlock is False): 
-                 endPosition = i
+                    cursor.setPosition(startPosition, QTextCursor.MoveAnchor);
+                    cursor.setPosition(endPosition, QTextCursor.KeepAnchor);
 
-                 cursor.setPosition(startPosition, QTextCursor.MoveAnchor);
-                 cursor.setPosition(endPosition, QTextCursor.KeepAnchor);
+                    blocks.append(cursor.selection())
+                    
+                    start = False
 
-                 blocks.append(cursor.selection())
-                 start = False
-
+                    if(group):
+                        groups.append(cursor.selection())
+                        group = False
              if(self.document().characterAt(i + 1) == '\0' and start is True):
                  endPosition = i
                  
@@ -101,8 +100,12 @@ class TextEdit(QTextEdit):
                  cursor.setPosition(endPosition, QTextCursor.KeepAnchor);
                
                  blocks.append(cursor.selection())
-                 start = False               
-             i = i + 1 
+                 start = False 
+                
+                 if(group):
+                    groups.append(cursor.selection())
+                    group = False          
+             i = i + 1
 
          return blocks
 
@@ -205,8 +208,8 @@ class MainWindow(QMainWindow):
         
         mutate_toolbar.addAction(randomise_text_action)
 
-        add_to_databaseU_action = QAction(QIcon(os.path.join('images', 'u.png')), "Add to U", self)
-        add_to_databaseU_action.triggered.connect(self.add_to_databaseU)
+        #add_to_databaseU_action = QAction(QIcon(os.path.join('images', 'u.png')), "Add to U", self)
+        #add_to_databaseU_action.triggered.connect(self.add_to_databaseU)
 
         get_random_databaseU_action = QAction(QIcon(os.path.join('images', 'u.png')), "Get U", self)
         get_random_databaseU_action.triggered.connect(self.get_random_databaseU)
@@ -384,7 +387,7 @@ class MainWindow(QMainWindow):
 
         mutate_menu = self.menuBar().addMenu("&Mutate")
         mutate_menu.addAction(randomise_text_action)
-        mutate_menu.addAction(add_to_databaseU_action)
+        #mutate_menu.addAction(add_to_databaseU_action)
         mutate_menu.addAction(get_random_databaseU_action)
 
         # A list of all format-related widgets/actions, so we can disable/enable signals when updating.
@@ -452,46 +455,11 @@ class MainWindow(QMainWindow):
             self.editor.setText(text)
             self.update_title()
 
-    def generate_node_source(self):
-        textedit = self.editor
-        t = textedit.textCursor()
- 
-        DIRA = os.getcwd() + '/sourcea/'
-        no_of_files = len([name for name in os.listdir(DIRA) if os.path.isfile(os.path.join(DIRA, name))])
-
-        print("YUP")
-        print(str(no_of_files))
-        random_file = random.randint(0, no_of_files - 2)
-        print("fuck")
-        print(str(random_file))
-
-        f = open(DIRA + "s" + str(random_file) + ".txt", "r")
-        u = f.readlines()
-        for y in range(len(u)):
-            u_bound = len(u[y]) - 1
-            s = u[y][0:u_bound]
-            t.insertText(s)
-            t.insertText("\n")
-
-        DIRB = os.getcwd() + '/sourceb/'
-        no_of_files = len([name for name in os.listdir(DIRB) if os.path.isfile(os.path.join(DIRB, name))])
-
-        print("YUP")
-        print(str(no_of_files))
-        random_file = random.randint(0, no_of_files - 2)
-
-        f = open(DIRB + "s" + str(random_file) + ".txt", "r")
-        u = f.readlines()
-        for y in range(len(u)):
-            u_bound = len(u[y]) - 1
-            s = u[y][0:u_bound]
-            t.insertText(s)
-            t.insertText("\n")
-
     def switch_to_node(self):
         textedit = self.editor
         t = textedit.textCursor()
         allText = textedit.toPlainText()
+        global start_text
 
         if(len(allText) == 0):
             self.generate_node_source()
@@ -508,26 +476,36 @@ class MainWindow(QMainWindow):
                     f.close()
                 else:
                     f = open(filepath, "a")
-                    f.write(" ")
+                    if(start_text != True):
+                        f.write(" ")
                     f.write(allText)
                     f.close()
+                    
+                    start_text = False
 
             textedit.clear()
 
-            self.generate_node_source() 
+            # self.generate_node_source()
+            t.setPosition(0) 
 
     def switch_to_unmeaning(self):
+        # to ensure a space isn't printed at the beginning of the file
+        global group_counter
+        global start_text
+        group_counter = 0
+        
         textedit = self.editor
         t = textedit.textCursor()
         allText = textedit.toPlainText()
 
         if(len(allText) == 0):
-            print("HASSAN")
+            pass
         else:
             a = self.editor.getTextAsArray()
 
-            for x in range(len(a)):
-                if(" " in a[x].toPlainText()):
+            for x in range(len(groups)):
+                if(len(groups[x].toPlainText().split()) > 1):
+                    group_counter = group_counter + 1
                     filepath = 'output.txt'
                     # open file in read mode
                     with open(filepath, 'r') as read_obj:
@@ -536,60 +514,48 @@ class MainWindow(QMainWindow):
                         # if not fetched then file is empty
                         if one_char == "\0" or one_char == "\n":
                             f = open(filepath, "w")
-                            f.write(a[x].toPlainText())
+                            f.write(groups[x].toPlainText())
                             f.close()
                         else:
                             f = open(filepath, "a")
-                            f.write(" ")
-                            f.write(a[x].toPlainText())
+                            # to ensure a space isn't printed at the beginning of the file
+                            if(group_counter != 1):
+                                f.write(" ")
+                            
+                            f.write(groups[x].toPlainText())
                             f.close()
+                            start_text = False
 
             textedit.clear()
-            
-
-    def add_to_databaseU(self):
-        textedit = self.editor
-        t = textedit.textCursor()
-        input = t.selectedText()
-
-        filepath = 'u.txt'
-        # open file in read mode
-        with open(filepath, 'r') as read_obj:
-            # read first character
-            one_char = read_obj.read(1)
-            # if not fetched then file is empty
-            if one_char == "\0" or one_char == "\n":
-                f = open(filepath, "w")
-                f.write(input)
-                f.close()
-            else:
-                f = open(filepath, "a")
-                f.write("\n")
-                f.write(input)
-                f.close()
 
     def get_random_databaseU(self):
         textedit = self.editor
         t = textedit.textCursor()
 
-        f = open("u.txt", "r")
-        u = f.readlines()
-        rnd_line = random.choice(u)
-        u_bound = len(rnd_line)
+        with open('u.txt','r') as inf:
+                dict_from_file = eval(inf.read())
+                key = str(random.randint(0, len(dict_from_file) - 1))
 
-        if("\n" in rnd_line):
-            s = rnd_line[0:u_bound - 1]
-        else: 
-            s = rnd_line[0:u_bound]
+        sentence = dict_from_file[key]
 
-        t.insertText(s)
+        num_fragments = random.randint(1,15)
+
+        str_all = ""
+
+        for i in range(1, num_fragments + 1):
+            fragment_id = random.randint(0, len(sentence) - 1)
+            str_all = str_all + sentence[fragment_id]
+            str_all = str_all + " "
+
+
+        t.insertText(str_all)
 
     def randomise_text(self):
         textedit = self.editor
         textdoc = textedit.document()
 
         t = textedit.textCursor()
-
+        #a = []
         a = self.editor.getTextAsArray()
      
         random.shuffle(a)
@@ -649,32 +615,12 @@ class MainWindow(QMainWindow):
 if __name__ == '__main__':
     def clean_database(fname):
         filepath = fname
-        # open file in read mode
-        with open(filepath, 'r') as read_obj:
-            # read first character
-            one_char = read_obj.read(1)
-            # if not fetched then file is empty
-            if one_char == "\0" or one_char == "\n":
-                print("empty file")
-            else:
-                print("cleaning...")
-                f = open(filepath, "r")
-                l = f.readlines()
-
-                for i in l:
-                    if(i == "\n"):
-                        l.remove("\n")
-
-                f.close()
-                f = open(filepath, "w")
-
-                for i in range(len(l)):
-                   f.write(l[i])
-
-                f.close()
+        with open(filepath, "w") as file:
+            file.write("")
 
     def clean():
-        clean_database("u.txt")
+        print("cleaning...")
+        clean_database("output.txt")
 
     app = QApplication(sys.argv)
     app.setApplicationName("Nodal")
